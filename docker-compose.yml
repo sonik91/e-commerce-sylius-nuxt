@@ -1,0 +1,111 @@
+#version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.11.6
+    container_name: traefik
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - "--api"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mysql.address=:3306"
+      - "--entrypoints.traefikapi.address=:8080"
+      - "--entrypoints.nuxt-debug.address=:3001"
+      - "--serversTransport.insecureSkipVerify=true"
+      - "--log.level=DEBUG"
+    ports:
+      # Web
+      - "80:80/tcp"
+      - "443:443/tcp"
+      #pour nuxt en debug
+      - "3001:3001"
+      # MariaDB
+      - "3306:3306/tcp"
+      # Dashboard Traefik
+      - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - web
+    deploy:
+      resources:
+        limits:
+          memory: 300m
+
+  nuxt:
+    build: ./front
+    container_name: nuxt
+    privileged: true
+    volumes:
+      - "nuxt:/var/www/html"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nuxt.rule=Host(`nuxt.localhost`)"
+      - "traefik.http.routers.nuxt.entrypoints=web"
+      - "traefik.http.routers.nuxt.tls=false"
+      - "traefik.http.routers.nuxt.service=nuxt"
+      - "traefik.http.services.nuxt.loadbalancer.server.port=3001"
+      
+
+  sylius:
+    build: ./backend
+    container_name: sylius
+    privileged: true
+    volumes:
+      - "sylius:/var/www/html"
+    networks:
+      web:
+        aliases:
+          - sylius.localhost
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sylius.rule=Host(`sylius.localhost`)"
+      - "traefik.http.services.sylius.loadbalancer.server.port=80"
+
+  mysql:
+    image: mysql:8.0
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sylius
+      MYSQL_USER: user
+      MYSQL_PASSWORD: pwd
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - web
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.localhost`)"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+
+volumes:
+  db_data:
+  sylius:
+  nuxt:
+
+networks:
+  web:
+    external: true

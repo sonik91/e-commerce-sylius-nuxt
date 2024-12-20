@@ -1,0 +1,18 @@
+# config/serialization/ProductVariant.yaml
+Sylius\Component\Core\Model\ProductVariant:
+    attributes:
+        createdAt:
+            groups: ['sylius:shop:product:index']
+        id:
+            groups: ['sylius:shop:product:index']
+        code:
+            groups: ['sylius:shop:product:index']
+        name:
+            groups: ['sylius:shop:product:index']
+        price:
+            groups: ['sylius:shop:product:index']
+        originalPrice:
+            groups: ['sylius:shop:product:index']
+        inStock:
+            groups: ['sylius:shop:product:index']
+            

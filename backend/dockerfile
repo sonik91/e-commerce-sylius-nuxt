@@ -1,0 +1,68 @@
+# Utiliser une image officielle de PHP avec Apache
+FROM php:8.3-apache
+
+# Mettre à jour et installer les dépendances nécessaires
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libicu-dev \
+    libzip-dev \
+    libonig-dev \
+    libxml2-dev \
+    nano \
+    rsync \
+    default-mysql-client \
+    openssh-client \
+    curl \
+    libjpeg-dev \
+    libpng-dev \
+    libwebp-dev \
+    libfreetype6-dev \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install \
+        pdo_mysql \
+        intl \
+        zip \
+        opcache \
+        exif \
+        gd \
+    && pecl install apcu && docker-php-ext-enable apcu intl opcache pdo_mysql sodium zip exif gd \
+    && a2enmod rewrite \
+    && apt-get clean
+
+# Installer Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Définir les permissions pour Apache
+RUN chown -R www-data:www-data /var/www/html
+
+# Copier le fichier de configuration personnalisé pour Apache
+COPY ./apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+
+# Installer les prérequis PHP définis par Sylius
+RUN echo "memory_limit=2G" > /usr/local/etc/php/conf.d/memory-limit.ini \
+    && echo "upload_max_filesize=20M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size=20M" > /usr/local/etc/php/conf.d/post-size.ini \
+    && echo "date.timezone=UTC" > /usr/local/etc/php/conf.d/timezone.ini
+
+# Installer Node.js et Yarn pour les assets frontend
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install --global yarn
+
+# Définir le répertoire de travail
+WORKDIR /var/www/html
+
+# Exposer le port 80
+EXPOSE 80
+
+# Ajouter le script d'entrée
+COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Définir les permissions pour Apache
+RUN chmod +x /usr/local/bin/entrypoint.sh 
+
+# Commande par défaut
+#CMD ["apache2-foreground"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

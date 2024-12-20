@@ -1,0 +1,4 @@
+Sylius\Component\Core\Model\Taxons:
+    attributes:
+        code:
+            groups: ['sylius:shop:product:index']
