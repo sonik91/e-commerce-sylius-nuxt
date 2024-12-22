@@ -14,21 +14,22 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.mysql.address=:3306"
       - "--entrypoints.traefikapi.address=:8080"
-      - "--entrypoints.nuxt-debug.address=:3001"
+      - "--entrypoints.nuxt.address=:3000"
       - "--serversTransport.insecureSkipVerify=true"
       - "--log.level=DEBUG"
     ports:
       # Web
       - "80:80/tcp"
       - "443:443/tcp"
-      #pour nuxt en debug
-      - "3001:3001"
+      - "3000:3000"
       # MariaDB
       - "3306:3306/tcp"
       # Dashboard Traefik
       - "8080:8080"
     labels:
       - "traefik.enable=true"
+
+      
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -39,35 +40,77 @@ services:
           memory: 300m
 
   nuxt:
-    build: ./front
-    container_name: nuxt
+    build: 
+      context: ./front
+      args:
+        NUXT_ENV: ${NUXT_ENV}
+        NUXT_JWT_SECRET: ${NUXT_JWT_SECRET}
+        SYLIUS_HOST: ${SYLIUS_HOST}
+    container_name: ${NUXT_CONTAINER_NAME}
     privileged: true
+    environment:
+      NUXT_ENV: ${NUXT_ENV}
+      NUXT_JWT_SECRET: ${NUXT_JWT_SECRET}
+      SYLIUS_HOST: ${SYLIUS_HOST}
+      SYLIUS_BASE_URL: http://${SYLIUS_CONTAINER_NAME}:80
     volumes:
-      - "nuxt:/var/www/html"
+      - "nuxt:/app"
     networks:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nuxt.rule=Host(`nuxt.localhost`)"
+      - "traefik.http.routers.nuxt.rule=Host(`${NUXT_HOST}`)"
       - "traefik.http.routers.nuxt.entrypoints=web"
       - "traefik.http.routers.nuxt.tls=false"
       - "traefik.http.routers.nuxt.service=nuxt"
-      - "traefik.http.services.nuxt.loadbalancer.server.port=3001"
+      - "traefik.http.services.nuxt.loadbalancer.server.port=3000"
       
 
   sylius:
     build: ./backend
-    container_name: sylius
+    container_name: ${SYLIUS_CONTAINER_NAME}
     privileged: true
+    hostname: ${SYLIUS_CONTAINER_NAME}
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_HOST}/${MYSQL_DATABASE}?serverVersion=8&charset=utf8mb4
+      SYLIUS_HOST: ${SYLIUS_HOST}
+      MAILER_DSN: ${MAILER_DSN}
+      MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN}
+      SYLIUS_MESSENGER_TRANSPORT_MAIN_DSN: ${SYLIUS_MESSENGER_TRANSPORT_MAIN_DSN}
+      SYLIUS_MESSENGER_TRANSPORT_MAIN_FAILED_DSN: ${SYLIUS_MESSENGER_TRANSPORT_MAIN_FAILED_DSN}
+      SYLIUS_MESSENGER_TRANSPORT_CATALOG_PROMOTION_REMOVAL_DSN: ${SYLIUS_MESSENGER_TRANSPORT_CATALOG_PROMOTION_REMOVAL_DSN}
+      SYLIUS_MESSENGER_TRANSPORT_CATALOG_PROMOTION_REMOVAL_FAILED_DSN: ${SYLIUS_MESSENGER_TRANSPORT_CATALOG_PROMOTION_REMOVAL_FAILED_DSN}
+      PHP_DATE_TIMEZONE: ${PHP_DATE_TIMEZONE}
+      APACHE_LOG_DIR: /varr/www/logs
+      XDEBUG_MODE: ${XDEBUG_MODE}
+      #importan pour autoriser les requette sur l'api de sylius depuis nuxt
+      SYLIUS_REGEX_REQUEST_ACCEPTED: ${SYLIUS_REGEX_REQUEST_ACCEPTED}
+      XDEBUG_CONFIG: >-
+                client_host=host.docker.internal
+                client_port=${XDBUG_PORT}
+                log=/dev/stdout
+      # This should correspond to the server declared in PHPStorm `Preferences | Languages & Frameworks | PHP | Servers`
+      # Then PHPStorm will use the corresponding path mappings
+      PHP_IDE_CONFIG: serverName=${PHP_IDE_CONFIG_NAME}
     volumes:
-      - "sylius:/var/www/html"
+      - sylius:/app:rw,cached
+
+      # if you develop on Linux, you may use a bind-mounted host directory instead
+#     - ./var:/srv/sylius/var:rw
+      - sylius-public:/app/public:rw,delegated
+      
+      # if you develop on Linux, you may use a bind-mounted host directory instead
+#     - ./public/media:/srv/sylius/public/media:rw
+      - sylius-public-media:/app/public/media:rw
     networks:
       web:
         aliases:
-          - sylius.localhost
+          - ${SYLIUS_HOST}  
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sylius.rule=Host(`sylius.localhost`)"
+      - "traefik.http.routers.sylius.rule=Host(`${SYLIUS_HOST}`)"
       - "traefik.http.services.sylius.loadbalancer.server.port=80"
 
   mysql:
@@ -78,14 +121,16 @@ services:
       timeout: 5s
       retries: 5
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sylius
-      MYSQL_USER: user
-      MYSQL_PASSWORD: pwd
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - web
+      web:
+        aliases:
+          - ${MYSQL_HOST}
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -93,7 +138,7 @@ services:
       - mysql
     environment:
       PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     networks:
       - web
     labels:
@@ -104,6 +149,8 @@ services:
 volumes:
   db_data:
   sylius:
+  sylius-public:
+  sylius-public-media:
   nuxt:
 
 networks:

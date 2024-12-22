@@ -1,32 +1,46 @@
-# Étape 1 : Utiliser une image officielle de PHP avec Apache comme base
-FROM php:8.3-apache
+# Définir des arguments de build
+ARG NUXT_JWT_SECRET=secret-key
+ARG SYLIUS_HOST=sylius.localhost
+ARG NUXT_ENV=prod
 
-# Étape 2 : Installer Node.js et les dépendances nécessaires
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    nano \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+FROM node:22 as builder
 
-# Étape 3 : Installer les dépendances de l'application Nuxt.js
-WORKDIR /var/www/html
+ENV NUXT_JWT_SECRET=${NUXT_JWT_SECRET}
+ENV SYLIUS_HOST=${SYLIUS_HOST}
 
-# Étape 5 : Configurer Apache pour agir comme proxy pour Node.js
-RUN a2enmod proxy proxy_http rewrite
+WORKDIR /app
 
-#COPY ./apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+# Copier uniquement les fichiers nécessaires
+COPY package*.json ./
 
-# Étape 6 : Exposer le port utilisé par Apache
-EXPOSE 80
+# Installer les dépendances de build
+RUN npm install
+
+# Copier le reste des fichiers
+COPY . .
+
+# Construire le projet
+RUN npm run build
+
+# Étape finale
+FROM node:22
+
+ENV NUXT_JWT_SECRET=${NUXT_JWT_SECRET}
+ENV SYLIUS_HOST=${SYLIUS_HOST}
+
+WORKDIR /app
+
+# Copier les fichiers nécessaires depuis l'étape précédente
+COPY --from=builder /app .
+
+ENV HOST 0.0.0.0
+EXPOSE \
+  3000 
 
 # Ajouter le script d'entrée
-COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN mv entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Définir les permissions pour Apache
-RUN chmod +x /usr/local/bin/entrypoint.sh 
+# garder le conteneur ouvert
+CMD ["/entrypoint.sh"]
 
-# Commande par défaut
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

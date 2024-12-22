@@ -10,7 +10,8 @@ export const CustomerSchema = z.object({
   idCustomer: z.number().nullable().default(null),
   token: z.string().nullable().default(null),
   user: z.object({
-    birthday: z.date().nullable().default(null),
+    // Regex pour valider le format "YYYY-MM-DD HH:mm:ss"
+    birthday: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/,{ message: "Invalid date format. Expected format: YYYY-MM-DD HH:mm:ss" }).nullable().default(null),
     defaultAddress: z.number().nullable().default(null),
     email: z.string().email(),
     phoneNumber: z.string().regex(phoneRegex, 'Invalid phone number!').nullable().default(null),

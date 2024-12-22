@@ -1,68 +1,92 @@
-# Utiliser une image officielle de PHP avec Apache
-FROM php:8.3-apache
+FROM ubuntu:20.04
+ARG DEBIAN_FRONTEND=noninteractive
+ENV LC_ALL=C.UTF-8
 
-# Mettre à jour et installer les dépendances nécessaires
+# Install basic tools
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libicu-dev \
-    libzip-dev \
-    libonig-dev \
-    libxml2-dev \
-    nano \
-    rsync \
-    default-mysql-client \
-    openssh-client \
+    software-properties-common \
     curl \
-    libjpeg-dev \
-    libpng-dev \
-    libwebp-dev \
-    libfreetype6-dev \
-    && docker-php-ext-configure intl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install \
-        pdo_mysql \
-        intl \
-        zip \
-        opcache \
-        exif \
-        gd \
-    && pecl install apcu && docker-php-ext-enable apcu intl opcache pdo_mysql sodium zip exif gd \
-    && a2enmod rewrite \
-    && apt-get clean
+    make \
+    supervisor \
+    unzip
 
-# Installer Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Append NGINX and PHP repositories
+RUN add-apt-repository ppa:ondrej/php && add-apt-repository ppa:ondrej/nginx
 
-# Définir les permissions pour Apache
-RUN chown -R www-data:www-data /var/www/html
+# Install NGINX and required PHP extensions
+RUN apt-get update && apt-get install -y \
+    nginx \
+    php8.2 \
+    php8.2-apcu \
+    php8.2-calendar \
+    php8.2-common \
+    php8.2-cli \
+    php8.2-common \
+    php8.2-ctype \
+    php8.2-curl \
+    php8.2-dom \
+    php8.2-exif \
+    php8.2-fpm \
+    php8.2-gd \
+    php8.2-intl \
+    php8.2-mbstring \
+    php8.2-mysql \
+    php8.2-opcache \
+    php8.2-pdo \
+    php8.2-pgsql \
+    php8.2-sqlite \
+    php8.2-xml \
+    php8.2-xsl \
+    php8.2-yaml \
+    php8.2-zip
 
-# Copier le fichier de configuration personnalisé pour Apache
-COPY ./apache-vhost.conf /etc/apache2/sites-available/000-default.conf
-
-# Installer les prérequis PHP définis par Sylius
-RUN echo "memory_limit=2G" > /usr/local/etc/php/conf.d/memory-limit.ini \
-    && echo "upload_max_filesize=20M" > /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "post_max_size=20M" > /usr/local/etc/php/conf.d/post-size.ini \
-    && echo "date.timezone=UTC" > /usr/local/etc/php/conf.d/timezone.ini
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename composer
 
 # Installer Node.js et Yarn pour les assets frontend
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install --global yarn
 
-# Définir le répertoire de travail
-WORKDIR /var/www/html
 
-# Exposer le port 80
+# Installer Node.js et Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs \
+    && npm install --global yarn
+
+RUN npm install -g npm@11.0.0
+
+RUN mkdir /var/www/.npm && chown -R 33:33 /var/www/.npm
+
+# Cleanup
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
+
+# Create directory for php-fpm socket
+# Link php-fpm binary file without version
+# -p Creates missing intermediate path name directories
+RUN ln -s /usr/sbin/php-fpm8.2 /usr/sbin/php-fpm && mkdir -p /run/php
+
+# Initialize config files
+COPY .docker/supervisord.conf   /etc/supervisor/conf.d/supervisor.conf
+COPY .docker/nginx.conf         /etc/nginx/nginx.conf
+COPY .docker/fpm.conf           /etc/php/8.0/fpm/pool.d/www.conf
+COPY .docker/php.ini            /etc/php/8.0/fpm/php.ini
+COPY .docker/php.ini            /etc/php/8.0/cli/php.ini
+
+WORKDIR /app
+
 EXPOSE 80
 
-# Ajouter le script d'entrée
-COPY ./entrypoint.sh /usr/local/bin/entrypoint.sh
+# Copier le projet dans le conteneur
+COPY . .
 
-# Définir les permissions pour Apache
-RUN chmod +x /usr/local/bin/entrypoint.sh 
+RUN rm -rf /app/vendor
 
-# Commande par défaut
-#CMD ["apache2-foreground"]
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+RUN chown -R www-data:www-data /app /var/www
+
+RUN mv /app/startup.sh /startup.sh
+RUN chmod +x /startup.sh
+
+#pour que php est accée au variable d'environement
+RUN sed -i 's/^;clear_env = .*/clear_env = no/' /etc/php/8.2/fpm/pool.d/www.conf
+
+CMD ["/bin/bash", "-c", "/startup.sh && /usr/bin/supervisord -c /etc/supervisor/supervisord.conf"]

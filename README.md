@@ -1,21 +1,21 @@
-pour initier le projet faire les commande suivante:
+### pour initier le projet faire les commande suivante:
 
-docker-compose up -d --build
+    docker-compose up -d --build
 
-une fois le contenaire lancer rentrer dans le contenaire sylius avec 
+    Dans sylius vous avais besoin de modifier/crée les canaux pour avoir un shop sur l'url sylius.localhost ou la valeur renseigner dans SYLIUS_HOST 
 
-docker exec -it sylius bash
+### Si besoin de cree une bd pour sylius faire les commande suivante
+    docker exec -it --user www-data sylius bash
+    php bin/console doctrine:schema:update --force
 
-ensuite crée un fichier .env.local avec cette ligne ou les info de votre base de donnée
-DATABASE_URL=mysql://user:pwd@mysql:3306/sylius
+### si besoin de crée un jeux de donné test
+    docker exec -it --user www-data sylius bash
+    php bin/console sylius:fixtures:load
 
-faires la commande suivante pour instaler sylius
+### si besoin de crée un utilisateur admin
+    docker exec -it --user www-data sylius bash
+    php bin/console sylius:admin-user:create
 
-bin/console sylius:install
-
-export l'api au format json et metre le fichier dans le conteneur nuxt a la racine
-
-bin/console api:openapi:export > export_api.json
-
-le detail de l'api est disponible a l'adresse suivante:
-http://sylius.localhost/api/v2/docs
+### génération jwt token dans sylius afin de faire fonctionner l'api
+    docker exec -it --user www-data sylius bash
+    php bin/console sylius:install:jwt-setup

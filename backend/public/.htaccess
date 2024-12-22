@@ -71,3 +71,4 @@ DirectoryIndex index.php
     # Prevent clickjacking
     Header set X-Frame-Options SAMEORIGIN
 </IfModule>
+
