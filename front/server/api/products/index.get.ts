@@ -5,8 +5,8 @@ import { formatProduct } from '~/utils/FormattedProduct';
 
 export default defineEventHandler(async (event) => {
   try {
-    // Récupérez les paramètres de la requête
-    const queryParams = getQuery(event);
+    // Récupérez les paramètres de la requête et force le parametre enabled a true pour ne jamais afficher les produit desactiver
+    const queryParams = { onlyTotalItems: false, ...getQuery(event), enabled: true };
 
     // Récupérez le token JWT à partir des cookies
     const authToken = getCookie(event, 'auth_token');
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
         : {},
     });
 
-
+    const totalItems = response.data['hydra:totalItems']??null;
 
     // Récupérez les données des produits et les format
     const products: Product[] = response.data['hydra:member']?.map((product: any) => {
@@ -30,7 +30,12 @@ export default defineEventHandler(async (event) => {
     });
 
     // Retourne les produits au frontend
-    return products;
+    return {
+      totalItems: totalItems,
+      status: response.status,
+      products: products
+    };
+
   } catch (error) {
     console.error('Erreur lors de la récupération des produits :', error.message);
     if (error.response) {

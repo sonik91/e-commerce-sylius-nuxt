@@ -29,6 +29,13 @@ export default defineEventHandler(async (event) => {
       }
     );
 
+    if(response.status === 401){
+      return {
+        succes: false,
+        error: response.data
+      }
+    }
+
     if(response.data.token && response.data.customer){
       const responseUser = await apiClient.get(`${response.data.customer}`, {
         headers:{
@@ -45,8 +52,6 @@ export default defineEventHandler(async (event) => {
         user: responseUser.data,
         idCustomer: responseUser.data.idCustomer
       } as Customer;
-
-      
 
       if(!CustomerSchema.safeParse(customer).success){
         throw new Error('Erreur lors de la recuperation des info sur le client.');

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd /app
+
 # Vérifier la valeur de NUXT_ENV
 if [ "$NUXT_ENV" = "prod" ]; then
   echo "Starting Nuxt in production mode..."

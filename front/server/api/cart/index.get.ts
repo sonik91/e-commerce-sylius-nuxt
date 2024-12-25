@@ -1,63 +1,48 @@
 import { apiClient } from '~/utils/axiosInstance';
-import { getCookie } from 'h3';
-import { CartSchema } from '~/types/Cart';
+import { getQuery, getCookie } from 'h3';
+import { Product } from '~/types/Product';
+import { formatProduct } from '~/utils/FormattedProduct';
 
 export default defineEventHandler(async (event) => {
-
-  
-
-    //Récupérez le token du cart à partir des cookie
-    const tokenCartCookie = getCookie(event, 'cart_token');
+  try {
+    // Récupérez les paramètres de la requête et force le parametre enabled a true pour ne jamais afficher les produit desactiver
+    const queryParams = { onlyTotalItems: false, ...getQuery(event), enabled: true };
 
     // Récupérez le token JWT à partir des cookies
     const authToken = getCookie(event, 'auth_token');
-    
-    //on verifie le panier est valide
-      if(tokenCartCookie){
-        try {
-          const response = await apiClient.get(`/api/v2/shop/orders/${tokenCartCookie}`, {
-            headers: authToken
-              ? {
-                  Authorization: `Bearer ${authToken}`, // Ajout du token dans les en-têtes
-                }
-              : {},
-          });
 
-          if(CartSchema.safeParse(response.data).success){
-            return CartSchema.safeParse(response.data).data;
+    // Appel de l'API de votre back-office
+    const response = await apiClient.get('/api/v2/shop/products', {
+      params: queryParams, // Passez directement les paramètres reçus
+      headers: authToken
+        ? {
+            Authorization: `Bearer ${authToken}`, // Ajout du token dans les en-têtes
           }
-        } catch(error: any){
-          console.error("tokenCartCookie invalide")
-        }
-      
-      } 
-    
-    //on a besoin de crée un panier
-    try{
-      const response = await apiClient.post(`/api/v2/shop/orders`, {
-        headers: authToken
-          ? {
-              Authorization: `Bearer ${authToken}`, // Ajout du token dans les en-têtes
-            }
-          : {},
-      });
+        : {},
+    });
 
-      if(!CartSchema.safeParse(response.data).success){
-        throw new Error('Erreur a la creation du panier');
-      }
-
-      return CartSchema.safeParse(response.data).data;
-      
-    } catch (error: any) {
-      console.error('Erreur lors de l\'ajout au panier:', error.message);
-      if (error.response) {
-        console.error('Détails de l\'erreur :', error.response.data);
-      }
-
-      return {
-        statusCode: error.response?.status || 500,
-        message: error.response?.data?.message || 'Erreur lors de l\'ajout au panier:',
-      };
+    //si on veut que le total de produit
+    if(queryParams.onlyTotalItems){
+      return response.data['hydra:totalItems']??null
     }
-    
-})
+
+    // Récupérez les données des produits et les format
+    const products: Product[] = response.data['hydra:member']?.map((product: any) => {
+
+      return <Product> formatProduct(product);
+    });
+
+    // Retourne les produits au frontend
+    return products;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des produits :', error.message);
+    if (error.response) {
+      console.error('Détails de l\'erreur :', error.response.data);
+    }
+
+    return {
+      statusCode: error.response?.status || 500,
+      message: error.response?.data?.message || 'Erreur lors de la récupération des produits.',
+    };
+  }
+});

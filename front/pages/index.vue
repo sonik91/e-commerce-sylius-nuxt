@@ -1,26 +1,23 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
+  <div class="md:container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold mb-8">Welcome to Our Store</h1>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div v-for="product in featuredProducts" :key="product.id"
-           class="bg-white rounded-lg shadow-md overflow-hidden">
-           <ProductCard :product="product" />
-      </div>
-    </div>
+    <ProductSlider  :params="params" title="Best product" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useCartStore } from '@/stores/cart';
+import ProductSlider from '~/components/ProductSlider.vue';
+
+const cartStore = useCartStore();
+
 const params = {
   page: 1,
-  itemsPerPage: 3,
-  locale: 'fr_FR',
-  enabled: true,
+  itemsPerPage: 5,
+  locale: cartStore.localeCode,
 };
 
-// Appelez l'API avec les paramètres
-const { data: featuredProducts, pending, error } = await useFetch('/api/products', {
-  params,
-});
+
+
 </script>

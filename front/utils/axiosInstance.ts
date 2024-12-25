@@ -22,8 +22,13 @@ if (process.server && process.env.SYLIUS_BASE_URL) {
 
 export const apiClient = axios.create({
   baseURL: baseURL,
-  headers: headers
+  headers: headers,
+  validateStatus: (status) => {
+    // Accepter tous les codes de réponse
+    return true;
+  }
 });
+
 
 export default apiClient;
 

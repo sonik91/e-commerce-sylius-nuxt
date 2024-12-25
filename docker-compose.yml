@@ -113,6 +113,18 @@ services:
       - "traefik.http.routers.sylius.rule=Host(`${SYLIUS_HOST}`)"
       - "traefik.http.services.sylius.loadbalancer.server.port=80"
 
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mailhog.localhost`)"
+      - "traefik.http.routers.mailhog.service=mailhog"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
+
   mysql:
     image: mysql:8.0
     healthcheck:

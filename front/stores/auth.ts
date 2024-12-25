@@ -9,6 +9,40 @@ export const useAuthStore = defineStore('auth', {
   }),
   
   actions: {
+    async create(params: {firstName: string, lastName: string, email: string, password: string, subscribedToNewsletter: boolean}){
+      const {firstName, lastName, email, password, subscribedToNewsletter} = params;
+
+      const { data } = await useFetch<{success:boolean, error:({title:string,detail:Array<any>}|null)}>('/api/auth/create-account', {
+        method: 'POST',
+        body: {firstName, lastName, email, password, subscribedToNewsletter}
+      })
+
+      //la creation à echouer
+      if(!data.value.success){
+        return {
+          success: false,
+          error:data.value.error??{title:"An error occured", detail:[]}
+        }
+      }
+      else{
+        await this.login({email: email, password: password})
+        if(this.token !== null){
+          return {
+            success: true
+          }
+        }
+        else{
+          return{
+            success: false,
+            error: {
+              title: "your acount is create but an error occured when connect your account. please try connect on login page or contact support",
+              error: []
+            }
+          }
+        }
+      }
+    },
+
     async login(params: {email: string, password: string} ) {
     
       const {email, password} = params;
