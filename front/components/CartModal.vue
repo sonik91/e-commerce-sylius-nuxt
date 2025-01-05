@@ -28,14 +28,26 @@
             <div class="flex-1">
               <h3 class="font-semibold">{{ item.productName }}</h3>
               <p class="text-gray-600">
-                <PriceFormated v-if="item?.unitPrice && cartStore?.currencyCode"
-                  :amount="item?.unitPrice ?? '00'" 
+                <PriceFormated v-if="item?.total && cartStore?.currencyCode"
+                  :amount="item?.total ?? '00'" 
                   :currency="cartStore.currencyCode"
                 />
               </p>
-              <div class="flex items-center gap-2 mt-2">
-                <span>Qty: {{ item.quantity }}</span>
+              <!---->
+              <div class="relative flex items-center">
+                  <button @click="cartStore.updateQty(item.id, item.quantity - 1)" type="button" id="decrement-button" data-input-counter-decrement="counter-input" class="flex-shrink-0 bg-primary-100 dark:bg-primary-700 dark:hover:bg-primary-600 dark:border-primary-600 hover:bg-primary-200 inline-flex items-center justify-center border border-primary-300 rounded-md h-5 w-5 focus:ring-primary-100 dark:focus:ring-primary-700 focus:ring-2 focus:outline-none">
+                      <svg class="w-2.5 h-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 2">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h16"/>
+                      </svg>
+                  </button>
+                  <input type="text" id="counter-input" data-input-counter class="flex-shrink-0 text-primary-900 dark:text-black border-0 bg-transparent text-sm font-normal focus:outline-none focus:ring-0 max-w-[2.5rem] text-center" placeholder="" :value="item.quantity" disabled />
+                  <button @click="cartStore.updateQty(item.id, item.quantity + 1)" type="button" id="increment-button" data-input-counter-increment="counter-input" class="flex-shrink-0 bg-primary-100 dark:bg-primary-700 dark:hover:bg-primary-600 dark:border-primary-600 hover:bg-primary-200 inline-flex items-center justify-center border border-primary-300 rounded-md h-5 w-5 focus:ring-primary-100 dark:focus:ring-primary-700 focus:ring-2 focus:outline-none">
+                      <svg class="w-2.5 h-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16"/>
+                      </svg>
+                  </button>
               </div>
+              <!---->
             </div>
           </div>
         </template>

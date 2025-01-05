@@ -31,6 +31,7 @@ import { useCartStore } from '@/stores/cart';
 import ProductCard from '~/components/ProductCard.vue';
 import Pagination from '~/components/Pagination.vue';
 import { Product } from '~/types/Product';
+import { useRoute } from 'vue-router';
 
 const cartStore = useCartStore();
 

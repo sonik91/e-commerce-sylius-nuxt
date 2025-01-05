@@ -7,6 +7,10 @@ export default defineEventHandler(async (event) => {
   try {
     // Récupérez les paramètres de la requête et force le parametre enabled a true pour ne jamais afficher les produit desactiver
     const queryParams = { onlyTotalItems: false, ...getQuery(event), enabled: true };
+    if(queryParams.taxon??false){
+      queryParams['productTaxons.taxon.code'] = queryParams.taxon;
+      delete queryParams.taxon;
+    }
 
     // Récupérez le token JWT à partir des cookies
     const authToken = getCookie(event, 'auth_token');

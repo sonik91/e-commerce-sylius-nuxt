@@ -62,7 +62,7 @@
               @click="goToPage(page.value)"
               :class="[
                 'relative inline-flex items-center px-4 py-2 text-sm font-semibold ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0',
-                page.state === 'current-page' ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600' : 'text-gray-900'
+                page.state === 'current-page' ? 'z-10 bg-indigo-600 text-white hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600' : 'text-gray-900'
               ]"
             >
               {{ page.value }}
@@ -152,7 +152,7 @@ const pages = computed(() => {
   }
 
   if(totalPages.value > 1){
-      pagesArray.push({ value: totalPages.value.toString(), state: 'page' })
+      pagesArray.push({ value: totalPages.value.toString(), state: props.currentPage === totalPages.value? 'current-page' : 'page' })
   }
 
   return pagesArray;

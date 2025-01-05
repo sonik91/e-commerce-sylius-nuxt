@@ -1,5 +1,7 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
+import { watch } from 'vue';
 import { CustomerSchema, type Customer } from '~/types/Customer';
+import { useCartStore } from '~/stores/cart';
 
 export const useAuthStore = defineStore('auth', {
   state: (): Customer => ({
@@ -51,18 +53,12 @@ export const useAuthStore = defineStore('auth', {
         method: 'POST',
         body: { email, password }
       })
-      
-      // Charger le token depuis le cookie
-      const tokenCookie = useCookie('auth_token');
-      const idCustomerCookie = useCookie('id_customer');
 
       if(CustomerSchema.safeParse(data.value).success){
         this.token = data.value.token;
         this.user = data.value.user;
         this.idCustomer = data.value.idCustomer;
 
-        tokenCookie.value = data.value.token;
-        idCustomerCookie.value = data.value.idCustomer;        
       }
 
       else{
@@ -70,34 +66,49 @@ export const useAuthStore = defineStore('auth', {
         this.token = null;
         this.user = null;
         this.idCustomer = null;
-
-        tokenCookie.value = null;
-        idCustomerCookie.value = null;
       }
+
+      useCartStore().fetchCart();
 
 
     },
+
+    async resetPassword(params: {email: string, localeCode: string}){
+      const {email, localeCode} = params;
+
+      const { data } = await useFetch('/api/auth/reset-password', {
+        method: 'POST',
+        body: { email, localeCode }
+      })
+
+
+      if(!data.value.success){
+        return {
+          success: false,
+          error:data.value.error??{title:"An error occured", detail:[]}
+        }
+      }
+      
+      else{
+        return {
+          success: true
+        }
+      }
+
+    },
     
-    logout() {
+    async logout() {
       this.user = null
       this.token = null
       this.idCustomer = null;
 
-      // Supprimer les cookies
-      const tokenCookie = useCookie('auth_token');
-      tokenCookie.value = null;
-
-      const idCustomerCookie = useCookie('id_customer');
-      idCustomerCookie.value = null;
-      
-      const cartTokenCookie = useCookie('cart_token');
-      cartTokenCookie.value = null;
+      useCartStore().ressetCart();
     },
 
     async loadFromCookies() {
       // Charger le token depuis le cookie
-      const tokenCookie = useCookie('auth_token');
-      const idCustomerCookie = useCookie('id_customer');
+      const tokenCookie = useCookie('auth_token')??null;
+      const idCustomerCookie = useCookie('id_customer')??null;
 
       if (tokenCookie.value && idCustomerCookie.value) {
         const { data } = await useFetch('/api/auth/login-by-cookie', {
@@ -109,8 +120,9 @@ export const useAuthStore = defineStore('auth', {
           this.user = data.value.user;
           this.idCustomer = data.value.idCustomer;
 
-          tokenCookie.value = data.value.token;
-          idCustomerCookie.value = data.value.idCustomer
+          //on set le cookie dans le même état
+          tokenCookie.value  = this.token
+          idCustomerCookie.value = this.idCustomer?.toString()
           return;
         }
       }
@@ -120,8 +132,10 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       this.idCustomer = null;
 
-      tokenCookie.value = null;
-      idCustomerCookie.value = null;
+      //on set le cookie dans le même état
+      tokenCookie.value  = this.token
+      idCustomerCookie.value = this.idCustomer
+
     },
 
   },

@@ -10,3 +10,4 @@ api_platform:
         versions: [3]
     graphql:
       enabled: true
+      

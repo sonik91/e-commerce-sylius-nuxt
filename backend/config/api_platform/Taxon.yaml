@@ -1,0 +1,30 @@
+resources:
+    '%sylius.model.taxon.class%':
+        operations:
+            ApiPlatform\Metadata\Get:
+                method: GET
+                name: sylius_api_shop_taxon_by_slug_get
+                uriTemplate: '/shop/taxon-by-slug/{slug}'
+                normalization_context:
+                    groups: ['sylius:shop:taxon:show']
+                controller: App\Controller\Api\GetTaxonBySlugController 
+                read: false
+                openapi_context:
+                    parameters:
+                        - name: slug
+                          in: path
+                          required: true
+                          description: 'The slug of the taxon to retrieve'
+                          schema:
+                              type: string
+                        - name: locale
+                          in: query
+                          required: false
+                          description: 'The locale of the slug'
+                          schema:
+                              type: string
+        attributes:
+            uri_variables:
+                slug:
+                    from_class: '%sylius.model.taxon.class%'
+                    property: slug

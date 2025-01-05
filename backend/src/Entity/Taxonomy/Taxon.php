@@ -12,8 +12,23 @@ use Sylius\Component\Taxonomy\Model\TaxonTranslationInterface;
 #[ORM\Table(name: 'sylius_taxon')]
 class Taxon extends BaseTaxon
 {
+    #[ORM\Column]
+    private ?bool $leaf = null;
+
     protected function createTranslation(): TaxonTranslationInterface
     {
         return new TaxonTranslation();
+    }
+
+    public function isLeaf(): ?bool
+    {
+        return $this->leaf;
+    }
+
+    public function setLeaf(bool $leaf): static
+    {
+        $this->leaf = $leaf;
+
+        return $this;
     }
 }

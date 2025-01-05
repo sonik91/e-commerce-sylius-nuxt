@@ -15,7 +15,7 @@
           <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
           <ul class="space-y-2">
             <li>
-              <NuxtLink to="/products" class="text-gray-400 hover:text-white">
+              <NuxtLink to="/categorie" class="text-gray-400 hover:text-white">
                 Products
               </NuxtLink>
             </li>

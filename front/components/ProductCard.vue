@@ -2,7 +2,7 @@
   <div class="border border-neutral-200 rounded-md hover:shadow-lg relative flex flex-col justify-between h-full">
     <div>
       <div v-if="!product" class="block"><div class="block object-cover h-auto rounded-md aspect-square animate-pulse bg-gray-300 w-full"></div></div>
-      <SfLink v-else :href="product?.url ?? ''" class="block">
+      <SfLink v-else :href="product?.url ?? '#'" class="block">
         <img
           :src="product?.images[0]?.path ?? '/defaultProduct.jpg'"
           :alt="product?.name ?? ''"
@@ -15,7 +15,7 @@
       <div class="p-4 border-t border-neutral-200">
 
         <p v-if="!product" class="animate-pulse bg-gray-300 w-full"></p>
-        <SfLink v-else :href="product?.url ?? ''" variant="secondary" class="no-underline">{{ product?.name ?? "" }}</SfLink>
+        <SfLink v-else :href="product?.url ?? '#'" variant="secondary" class="no-underline">{{ product?.name ?? "" }}</SfLink>
 
         <div class="flex items-center pt-1">
           <div v-if="product?.averageRating">
@@ -63,7 +63,7 @@
 
     <div>
       <div class="px-4 grid grid-cols-1 md:grid-cols-2 gap-4 mb-1" v-if="product">
-        <NuxtLink :to="product?.url ?? ''" class="flex gap-3 items-center justify-center w-full bg-transparent hover:bg-primary-700 text-primary-700 font-semibold hover:text-white py-2 px-4 border border-primary-700 hover:border-transparent rounded-md">
+        <NuxtLink :to="product?.url ?? '#'" class="flex gap-3 items-center justify-center w-full bg-transparent hover:bg-primary-700 text-primary-700 font-semibold hover:text-white py-2 px-4 border border-primary-700 hover:border-transparent rounded-md">
           <SfIconVisibility size="sm" />
           see more
         </NuxtLink>
@@ -113,6 +113,10 @@ if (props.product?.defaultVariant) {
   props.product.defaultVariant.options.forEach((option: {code: string, value: string|number}) => {
     selectedOptions[option.code] = option.value;
   });
+}
+
+if(props.product?.url){
+  props.product.url = '/' + props.product.url 
 }
 
 // Met à jour la variante sélectionnée en fonction des options choisies

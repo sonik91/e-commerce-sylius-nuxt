@@ -34,13 +34,21 @@ export const useCartStore = defineStore('cart', {
   actions: {
     async fetchCart(cart: Cart | null = null, useApi: boolean = true) {
 
-      const cartTokenCookie = useCookie('cart_token'); // Utilise un cookie nommé "cart_token"
       const tokenCookie = useCookie('auth_token');
       const idCustomerCookie = useCookie('id_customer');
 
       // Si le cart n'est pas fourni ou invalide, on le récupère depuis l'API
       if ((!cart || cart === null || !CartSchema.safeParse(cart).success) && useApi) {
-        cart = await $fetch('/api/cart', { method: 'GET' });
+        const response = await $fetch<{success: boolean, error:{title: string}|null, cart:Cart|null}>('/api/cart', { method: 'GET' });
+
+        if(!response.success){
+          const notificationStore = useNotificationStore();
+          notificationStore.addNotification({type:'error', message: response.error?.title?? 'Une érreur c\'est produit lors de la récuperation du panier'})
+          cart = null;
+        }
+        else{
+          cart = CartSchema.safeParse(response.cart).success ? response.cart : null;
+        }
       }
 
       //on setup un cart valide
@@ -56,10 +64,6 @@ export const useCartStore = defineStore('cart', {
 
       // Si le cart est valide, mettre à jour l'état
       if (cart && CartSchema.safeParse(cart).success) {
-
-        if (cart.tokenValue) {
-          cartTokenCookie.value = cart.tokenValue; // Stocke le token dans le cookie
-        }
 
         this.items = cart.items;
         this.customer = cart.customer;
@@ -88,6 +92,43 @@ export const useCartStore = defineStore('cart', {
         console.error("Une erreur imprevue est arriver dans la mise a jour du panier");
       }
     },
+
+    async updateQty(orderItemId: number, quantity: number = 0){
+      const params = {
+        orderItemId: orderItemId,
+        quantity: quantity
+      };
+
+      const data = await $fetch<{success: boolean, error:{title:string}|null, cart:Cart|null}>('/api/cart/update-qty', {
+        method: quantity > 0 ? 'PATCH': 'DELETE',
+        body: { params }
+      });
+
+      if(quantity < 1 && data.success){
+        return this.fetchCart()
+      }
+
+      
+      const notificationStore = useNotificationStore();
+      if(data.success && data.cart){
+        const cart = data.cart as Cart
+        const isValideCart = CartSchema.safeParse(cart)
+
+        if(isValideCart.success){
+          notificationStore.addNotification({type:'success', message:'cart updated'})
+          await this.fetchCart(cart);
+        }
+        else{
+          notificationStore.addNotification({type:'error', message: data.error?.title??'cart updated'})
+        }
+      }
+      else{
+        notificationStore.addNotification({type:'error', message: data.error?.title??'cart updated'})
+        this.fetchCart()
+      }
+
+
+    },
     
     async addToCart(productVariantCode: string, quantity: number = 1) {
 
@@ -96,7 +137,7 @@ export const useCartStore = defineStore('cart', {
         quantity: quantity
       };
 
-      const data = await $fetch('/api/cart', {
+      const data = await $fetch('/api/cart/add-to-cart', {
         method: 'POST',
         body: { params }
       });
@@ -113,18 +154,17 @@ export const useCartStore = defineStore('cart', {
       else{
         console.error('error when adding product to cart');
       }
-
-      
     },
 
     async ressetCart() {
-      const cartTokenCookie = useCookie('cart_token');
-      cartTokenCookie.value = null;
       await this.fetchCart(CartSchema.safeParse({}).data, false);
     },
 
     async initCart() {
       const cart = await $fetch('/api/cart/hasCart', { method: 'GET' });
+      const tokenCart = useCookie('cart_token');
+      tokenCart.value = cart?.tokenValue;
+      
       await this.fetchCart(cart as Cart);
     }
   }

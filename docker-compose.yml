@@ -53,6 +53,7 @@ services:
       NUXT_JWT_SECRET: ${NUXT_JWT_SECRET}
       SYLIUS_HOST: ${SYLIUS_HOST}
       SYLIUS_BASE_URL: http://${SYLIUS_CONTAINER_NAME}:80
+      NUXT_SESSION_PASSWORD: ${NUXT_SESSION_PASSWORD}
     volumes:
       - "nuxt:/app"
     networks:

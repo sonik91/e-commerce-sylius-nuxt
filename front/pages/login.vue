@@ -25,7 +25,7 @@
           <div class="flex items-center justify-between">
             <label for="password" class="block text-sm/6 font-medium text-gray-900">Password</label>
             <div class="text-sm flex justify-end">
-              <a href="#" tabindex="-1" class="font-semibold text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+              <a href="/reset-password" tabindex="-1" class="font-semibold text-indigo-600 hover:text-indigo-500">Forgot password?</a>
             </div>
           </div>
           <div class="mt-2">
@@ -93,34 +93,35 @@
 </template>  
 
 <script setup>
-import { watch } from 'vue';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '~/stores/auth';
 
 const plainPassword = ref(false);
 const email = ref('');
 const password = ref('');
 const router = useRouter();
-const authStore = useAuthStore();
-
-const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const alerteFailContent = ref('');
 const submitButtonAnimationFail = ref(false);
 
 // Redirection si l'utilisateur est connecté
-if (authStore.isAuthenticated) {
-  router.push('/');
+if (useUserSession().loggedIn.value) {
+  await navigateTo({ path: '/account' })
 }
 
 const handleSubmit = async () => {
+
   try {
-    await authStore.login({ email: email.value, password: password.value });
+      const response = await $fetch('/api/auth/login',{ 
+          method: 'POST',
+          body: { email: email.value, password: password.value }
+        }
+      );
       // Vérifie si `redirect` est présent dans l'URL
-      if(authStore.isAuthenticated === true){
-        const redirect = router.currentRoute.value.query.redirect || '/';
-        router.push(redirect);
+      if(response.success === true){
+        const redirect = router.currentRoute.value.query.redirect || '/dasboard';
+        console.log(redirect)
+        await navigateTo(redirect)
       }
       else{
         alerteFailContent.value =  "Email ou mots de passe incorecte."

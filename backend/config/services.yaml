@@ -29,6 +29,10 @@ services:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
 
+    # custom form
+    App\Form\Extension\CustomTaxonTypeExtension:
+        tags: ['form.type_extension']
+
     #custom serialiser
     App\Serializer\ProductNormalizer:
         arguments:
@@ -52,5 +56,12 @@ services:
         arguments:
             $sectionProvider: '@sylius.section_resolver.uri_based'
             $serializationGroups: ['sylius:shop:customer:show', 'sylius:shop:customer:create', 'sylius:shop:customer:update']
+        tags:
+            - { name: 'serializer.normalizer', priority: 100 }
+
+    App\Serializer\TaxonNormalizer:
+        arguments:
+            $sectionProvider: '@sylius.section_resolver.uri_based'
+            $serializationGroups: ['sylius:shop:taxon:index', 'sylius:shop:taxon:show']
         tags:
             - { name: 'serializer.normalizer', priority: 100 }
